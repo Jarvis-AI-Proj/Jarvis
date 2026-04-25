@@ -1,43 +1,38 @@
+import os
 import requests
-import time
+# BU KÜTÜPHANE ŞART: .env dosyasını sisteme yükler
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("Sosisli, pip install python-dotenv yazman lazım!")
 
-# Senin paylaştığın anahtar
-API_KEY = "GEMINI_API_KEY"
+# .env'den anahtarı çekiyoruz
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Model ismini GEMINI 2.0 FLASH olarak güncelledim
+# Modeli 2.0-flash yapıyoruz
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
 
 def jarvis_sor(soru):
-    headers = {'Content-Type': 'application/json'}
+    if not API_KEY:
+        return "Jarvis: Sosisli, anahtarı hala göremiyorum. .env dosyasını kontrol et!"
+    
     payload = {
-        "contents": [{
-            "parts": [{"text": f"Sen Jarvis'sin. Sosisli'nin ekip arkadaşısın. Çok kısa ve öz cevap ver. Soru: {soru}"}]
-        }]
+        "contents": [{"parts": [{"text": f"Sen Jarvis'sin. Kullanıcın Sosisli ile konuşuyorsun: {soru}"}]}]
     }
     
-    while True:
-        try:
-            response = requests.post(URL, json=payload, headers=headers)
-            data = response.json()
-            
-            if response.status_code == 200:
-                return data['candidates'][0]['content']['parts'][0]['text']
-            elif response.status_code == 429:
-                print("Jarvis: Kota doldu, 10 saniye bekleyip tekrar deniyorum...")
-                time.sleep(10)
-                continue
-            else:
-                return f"Hata ({response.status_code}): {data.get('error', {}).get('message', 'Bilinmeyen hata')}"
-        except Exception as e:
-            return f"Bağlantı koptu: {e}"
-
-print("Jarvis: Ege'yi orospu.com'dan almış- paydon.")
-
-while True:
-    istek = input("Sosisli: ")
-    if not istek.strip(): continue
-    if istek.lower() in ["exit", "kapat"]: break
+    response = requests.post(URL, json=payload)
     
-    cevap = jarvis_sor(istek)
-    print(f"Jarvis: {cevap}")
+    if response.status_code == 200:
+        return response.json()['candidates'][0]['content']['parts'][0]['text']
+    else:
+        # Hata 400 veriyorsa anahtar yanlış, 404 veriyorsa model ismi yanlıştır
+        return f"Hata oluştu! Kod: {response.status_code} - Mesaj: {response.text}"
+
+print("--- Jarvis Başlatılıyor ---")
+while True:
+    soru = input("Sosisli: ")
+    if soru.lower() in ["kapat", "çık"]:
+        break
+    print("Jarvis:", jarvis_sor(soru))
 
