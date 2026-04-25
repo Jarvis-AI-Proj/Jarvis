@@ -2,73 +2,70 @@ import os
 import requests
 from dotenv import load_dotenv
 
-# API Anahtarını Yükle
+# .env dosyasındaki API anahtarını yükle
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# --- MODEL AYARI: DOĞRUDAN 2.5 FLASH ---
-# 1.5 devri bitti, artık tek hat burası.
-MODEL_NAME = "gemini-2.5-flash"
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
+# Gemini 2.5 Flash API URL (Bölgeye göre v1beta kullanımı)
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 
-# Hafıza (Konuşma Geçmişi)
+# Hafıza listesi
 gecmis = []
 
 def jarvis_konus(soru):
-	    global gecmis
+    global gecmis
     
     if not API_KEY:
-        return "Sistem Hatası: API Anahtarı (.env) eksik!"
+        return "Hata: .env dosyasında GEMINI_API_KEY bulunamadı!"
 
-    # --- KESİN KİMLİK TALİMATI ---
+    # --- KİMLİK VE HAFIZA AYARI ---
+    # Eğer konuşma yeni başlıyorsa Jarvis'e kim olduğunu tembihle
     if len(gecmis) == 0:
-        sistem_emri = {
-            "role": "user", 
-            "parts": [{"text": "Senin adın Jarvis. Gemini 2.5 Flash mimarisi üzerine kurulu, son derece zeki ve profesyonel bir asistansın. Kimliğini asla inkar etme."}]
-        }
-        gecmis.append(sistem_emri)
-        gecmis.append({"role": "model", "parts": [{"text": "Sistemler optimize edildi. Ben Jarvis, emrinizdeyim."}]})
+        talimat = (
+            "Senin adın Jarvis. Sen benim kişisel asistanımsın. "
+            "Asla 'bir dil modeliyim' gibi ifadeler kullanma. "
+            "Her zaman profesyonel, zeki ve yardımcı ol. "
+            "Cevaplarını kısa, öz ve etkili tut."
+        )
+        gecmis.append({"role": "user", "parts": [{"text": talimat}]})
+        gecmis.append({"role": "model", "parts": [{"text": "Anlaşıldı. Ben Jarvis, sistemler aktif. Size nasıl yardımcı olabilirim?"}]})
 
-    # Kullanıcıdan gelen soruyu ekle
+    # Kullanıcı mesajını hafızaya ekle
     gecmis.append({"role": "user", "parts": [{"text": soru}]})
 
-    # Son 20 mesajı hafızada tutarak gönder (2.5 Flash daha büyük bağlamı destekler)
+    # API isteği (Hafızadaki son 15 mesajı gönderir)
     payload = {
-        "contents": gecmis[-20:]
+        "contents": gecmis[-15:]
     }
 
     try:
         response = requests.post(URL, json=payload)
         if response.status_code == 200:
-            res_data = response.json()
-            cevap = res_data['candidates'][0]['content']['parts'][0]['text']
+            result = response.json()
+            cevap = result['candidates'][0]['content']['parts'][0]['text']
             
-            # Cevabı hafızaya kaydet
+            # Jarvis'in cevabını hafızaya ekle
             gecmis.append({"role": "model", "parts": [{"text": cevap}]})
             return cevap
         else:
-            return f"Model Hatası ({response.status_code}): {response.text}"
+            return f"API Hatası ({response.status_code}): {response.text}"
     except Exception as e:
-        return f"Bağlantı koptu: {str(e)}"
+        return f"Bağlantı Hatası: {str(e)}"
 
-# --- TERMINAL ARAYÜZÜ ---
-os.system('clear')
-print("-" * 40)
-print("     JARVIS v2.5 FLASH SİSTEMİ     ")
-print("      (1.5 Sunucuları Devredışı)    ")
-print("-" * 40)
+# --- ANA DÖNGÜ ---
+os.system('clear') # Ekranı temizle
+print("====================================")
+print("   JARVIS v2.5 SİSTEMİ BAŞLATILDI   ")
+print("====================================")
+print("Çıkmak için 'çık' yazabilirsin.\n")
 
 while True:
-    try:
-        user_in = input("\nSiz: ")
-        if user_in.lower() in ["çık", "exit", "quit"]:
-            print("Jarvis: Sistemler uyku moduna alınıyor.")
-            break
-            
-        yanit = jarvis_konus(user_in)
-        print(f"\nJarvis: {yanit}")
-        
-    except KeyboardInterrupt:
-        print("\nJarvis: Zorunlu kapatma yapıldı.")
+    kullanici_input = input("Siz: ")
+    
+    if kullanici_input.lower() in ["çık", "exit", "quit", "kapat"]:
+        print("\nJarvis: Sistemler kapatılıyor. İyi günler.")
         break
-
+    
+    # Cevabı al ve ekrana yazdır
+    yanit = jarvis_konus(kullanici_input)
+    print(f"\nJarvis: {yanit}\n")
