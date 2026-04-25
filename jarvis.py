@@ -11,7 +11,7 @@ except ImportError:
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Gemini 3.0 Flash (En yeni, en hızlı versiyon)
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={API_KEY}"
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 
 def jarvis_sor(soru):
     if not API_KEY:
