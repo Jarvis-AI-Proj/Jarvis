@@ -25,7 +25,7 @@ def jarvis_konus(soru):
             "Senin adın Jarvis. Sen benim kişisel asistanımsın. "
             "Asla 'bir dil modeliyim' gibi ifadeler kullanma. "
             "Her zaman profesyonel, zeki ve yardımcı ol. "
-            "Cevaplarını kısa, öz ve etkili tut."
+            "Cevaplarını kullanıcı bunu isterse kısa tut, öz ve etkili olsun cevapların.."
         )
         gecmis.append({"role": "user", "parts": [{"text": talimat}]})
         gecmis.append({"role": "model", "parts": [{"text": "Anlaşıldı. Ben Jarvis, sistemler aktif. Size nasıl yardımcı olabilirim?"}]})
