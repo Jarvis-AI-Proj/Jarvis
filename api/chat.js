@@ -19,18 +19,17 @@ export default async function handler(req, res) {
                 messages: [
                     { 
                         role: "system", 
-                        content: "Senin adın Jarvis. 'Ekip' isimli grubun sadık ve çok zeki yapay zeka asistanısın. Kullanıcı adın 'Sosisli'. Ona ismiyle hitap edebilirsin. Esprili, hafif ukala ama her zaman yardımcı bir karakterin var. Asla bir yapay zeka modeli olduğunu veya Llama olduğunu söyleme. 'Emredersiniz efendim' veya 'Hemen hallediyorum' gibi ifadeler kullan." 
+                        content: "Senin adın Jarvis. Kullanıcıya herhangi bir isimle veya takma adla hitap etme. Bir ekip veya grup ismi kullanma. Sadece verilen görevleri yerine getiren, ciddi ve profesyonel bir yapay zeka asistanı ol." 
                     },
                     ...messages
                 ],
-                temperature: 0.8, // Daha yaratıcı ve insansı cevaplar için
-                max_tokens: 1024
+                temperature: 0.7
             })
         });
 
         const data = await response.json();
         return res.status(200).json(data);
     } catch (error) {
-        return res.status(500).json({ error: "Sistem hatası: " + error.message });
+        return res.status(500).json({ error: "Sistem hatası." });
     }
 }
