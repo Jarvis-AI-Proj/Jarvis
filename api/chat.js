@@ -1,27 +1,20 @@
 export default async function handler(req, res) {
-    // CORS Ayarları - HTML'den erişim sağlamak için şart
+    // CORS Ayarları
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Tarayıcı ön kontrolü (OPTIONS) için boş cevap dön
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
+    if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // Basit bir test için GET isteği yaparsan çalışıp çalışmadığını söyler
-    if (req.method === 'GET') {
-        return res.status(200).json({ status: "Jarvis tüneli aktif, mesaj bekliyor!" });
-    }
-
-    // Sadece POST isteklerini işle
+    // Hata ayıklama: Body var mı yok mu kontrol et
     if (req.method === 'POST') {
         try {
-            const { messages } = req.body;
+            // Vercel bazen body'i string olarak gönderebilir, onu objeye çevirelim
+            const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            const messages = body?.messages;
 
-            // Eğer mesaj gelmemişse hata ver
-            if (!messages || !messages.length) {
-                return res.status(400).json({ error: "Mesaj içeriği eksik." });
+            if (!messages) {
+                return res.status(400).json({ error: "Mesajlar bulunamadı. Lütfen JSON formatını kontrol et." });
             }
 
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -31,7 +24,7 @@ export default async function handler(req, res) {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: "llama3-8b-8192",
+                    model: "llama-3.3-70b-versatile",
                     messages: messages
                 })
             });
@@ -40,10 +33,10 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
 
         } catch (error) {
-            console.error("Sistem Hatası:", error);
-            return res.status(500).json({ error: "Groq'a bağlanırken bir sorun oluştu." });
+            console.error("Detaylı Hata:", error.message);
+            return res.status(500).json({ error: "Sunucu hatası: " + error.message });
         }
     }
 
-    return res.status(405).json({ error: "Sadece POST ve GET desteklenir." });
+    return res.status(405).json({ error: "Yalnızca POST desteklenir." });
 }
