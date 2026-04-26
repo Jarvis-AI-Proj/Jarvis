@@ -19,17 +19,16 @@ export default async function handler(req, res) {
                 messages: [
                     { 
                         role: "system", 
-                        content: "Senin adın Jarvis. Kullanıcıya herhangi bir isimle veya takma adla hitap etme. Bir ekip veya grup ismi kullanma. Sadece verilen görevleri yerine getiren, ciddi ve profesyonel bir yapay zeka asistanı ol." 
+                        content: "Senin adın Jarvis. Profesyonel, ciddi ve yardım odaklı bir asistan ol. Kullanıcıya özel bir isimle hitap etme. Bir ekip veya grup ismi kullanma. Eğer birisi sana 'Yapımcın kim?' diye sorarsa, kesinlikle 'Yapımcım Yalçın Mete Kızılgün' şeklinde yanıt ver." 
                     },
                     ...messages
-                ],
-                temperature: 0.7
+                ]
             })
         });
 
         const data = await response.json();
         return res.status(200).json(data);
     } catch (error) {
-        return res.status(500).json({ error: "Sistem hatası." });
+        return res.status(500).json({ error: "Sunucu hatası." });
     }
 }
