@@ -1,3 +1,5 @@
+import fetch from 'node-fetch';
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -15,47 +17,46 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token || token.length < 10) {
-        console.error("Hata: HF_TOKEN eksik veya çok kısa!");
-        return res.status(500).json({ error: 'HF_TOKEN is not configured correctly on Vercel.' });
+        return res.status(500).json({ error: 'HF_TOKEN eksik veya gecersiz!' });
     }
 
+    // DNS hataları için yeniden deneme fonksiyonu
+    const fetchWithRetry = async (url, options, retries = 3) => {
+        try {
+            return await fetch(url, options);
+        } catch (err) {
+            if (retries <= 0) throw err;
+            console.log(`Hata olustu, tekrar deneniyor... Kalan deneme: ${retries}`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+    };
+
     try {
-        console.log("Hugging Face'e istek atılıyor...");
-        const response = await fetch(
+        const response = await fetchWithRetry(
             "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
                     "Content-Type": "application/json",
-                    "x-use-cache": "false"
                 },
                 method: "POST",
                 body: JSON.stringify({ inputs }),
             }
         );
 
-        if (response.status === 404) {
-             console.error("Hata: Model bulunamadı veya adres yanlış.");
-             return res.status(404).json({ error: "Model adresi hatalı." });
-        }
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("Hugging Face Yanıtı Hatalı:", response.status, errorText);
-            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
+            console.error("HF Hatasi:", response.status, errorText);
+            return res.status(response.status).json({ error: `HF Hatasi: ${response.status}` });
         }
 
         const buffer = await response.arrayBuffer();
-        if (buffer.byteLength < 100) {
-             throw new Error("Gelen veri bir resim dosyası değil.");
-        }
-
         res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Cache-Control', 'no-store');
         return res.send(Buffer.from(buffer));
 
     } catch (error) {
-        console.error("API Catch Bloğu:", error.message);
-        return res.status(500).json({ error: `Sunucu Hatası: ${error.message}` });
+        console.error("Final Hatasi:", error.message);
+        return res.status(500).json({ error: `Sunucu Hatasi: ${error.message}` });
     }
 }
