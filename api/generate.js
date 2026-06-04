@@ -25,7 +25,7 @@ export default async function handler(req, res) {
             "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
             {
                 headers: { 
-                    "Authorization": `Bearer ${token}`,
+                    "Authorization": `Bearer ${token.trim()}`,
                     "Content-Type": "application/json"
                 },
                 method: "POST",
