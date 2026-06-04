@@ -15,10 +15,12 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token) {
+        console.error("Hata: HF_TOKEN eksik!");
         return res.status(500).json({ error: 'HF_TOKEN is not configured on Vercel.' });
     }
 
     try {
+        console.log("Hugging Face'e istek atılıyor, prompt:", inputs);
         const response = await fetch(
             "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
             {
@@ -32,8 +34,9 @@ export default async function handler(req, res) {
         );
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'API Error' }));
-            return res.status(response.status).json(error);
+            const errorText = await response.text();
+            console.error("Hugging Face Hatası:", response.status, errorText);
+            return res.status(response.status).json({ error: errorText });
         }
 
         const buffer = await response.arrayBuffer();
@@ -41,6 +44,7 @@ export default async function handler(req, res) {
         return res.send(Buffer.from(buffer));
 
     } catch (error) {
+        console.error("Sunucu Hatası:", error);
         return res.status(500).json({ error: error.message });
     }
 }
