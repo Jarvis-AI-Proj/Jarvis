@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     try {
         const response = await fetch(
-            "https://api-inference.huggingface.co/models/Ozen/vits-tts-tr",
+            "https://router.huggingface.co/hf-inference/models/Ozen/vits-tts-tr",
             {
                 headers: { "Authorization": `Bearer ${token.trim()}`, "Content-Type": "application/json" },
                 method: "POST",
