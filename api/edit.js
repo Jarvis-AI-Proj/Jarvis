@@ -26,15 +26,15 @@ export default async function handler(req, res) {
                 },
                 method: "POST",
                 body: JSON.stringify({
-                    inputs: prompt,
-                    image: base64Data,
+                    inputs: prompt.trim(),
+                    image: base64Data
                 }),
             }
         );
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `Hugging Face Hatası: ${response.status}` });
+            return res.status(response.status).json({ error: `HF 400 Hatası (Edit): ${errText}` });
         }
 
         const resultBuffer = await response.arrayBuffer();

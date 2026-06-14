@@ -12,9 +12,10 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
+    if (!prompt || prompt.trim() === "") return res.status(400).json({ error: 'Müzik açıklaması boş olamaz!' });
 
     try {
-        console.log("Ses/Muzik uretiliyor (AudioLDM):", prompt);
+        console.log("Müzik üretiliyor (AudioLDM):", prompt);
         const response = await fetch(
             "https://router.huggingface.co/hf-inference/models/cvssp/audioldm-m-full",
             {
@@ -23,13 +24,13 @@ export default async function handler(req, res) {
                     "Content-Type": "application/json"
                 },
                 method: "POST",
-                body: JSON.stringify({ inputs: prompt }),
+                body: JSON.stringify({ inputs: prompt.trim() }), // En sade format
             }
         );
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
+            return res.status(response.status).json({ error: `HF 400 Hatası: ${errText}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
