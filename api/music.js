@@ -14,33 +14,26 @@ export default async function handler(req, res) {
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
     if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
-    const fetchWithRetry = async (url, options, retries = 3) => {
-        try {
-            const resp = await fetch(url, options);
-            if (resp.status === 503 && retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                return fetchWithRetry(url, options, retries - 1);
-            }
-            return resp;
-        } catch (err) {
-            if (retries <= 0) throw err;
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            return fetchWithRetry(url, options, retries - 1);
-        }
-    };
-
     try {
-        const response = await fetchWithRetry(
+        console.log("Muzik istegi:", prompt);
+        const response = await fetch(
             "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
-                headers: { "Authorization": `Bearer ${token.trim()}`, "Content-Type": "application/json" },
+                headers: { 
+                    "Authorization": `Bearer ${token.trim()}`,
+                    "Content-Type": "application/json"
+                },
                 method: "POST",
                 body: JSON.stringify({ inputs: prompt }),
             }
         );
 
         if (!response.ok) {
-            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
+            const errText = await response.text();
+            let errData;
+            try { errData = JSON.parse(errText); } catch(e) { errData = { error: errText }; }
+            console.error("HF Muzik Hatasi:", response.status, errData);
+            return res.status(response.status).json(errData);
         }
 
         const audioBuffer = await response.arrayBuffer();
@@ -48,6 +41,7 @@ export default async function handler(req, res) {
         return res.send(Buffer.from(audioBuffer));
 
     } catch (error) {
-        return res.status(500).json({ error: error.message });
+        console.error("Muzik Catch:", error.message);
+        return res.status(500).json({ error: `Sunucu Hatası: ${error.message}` });
     }
 }
