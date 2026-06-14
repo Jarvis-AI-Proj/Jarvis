@@ -12,12 +12,11 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
-    if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
     try {
-        console.log("Muzik istegi:", prompt);
+        console.log("Ses/Muzik uretiliyor (AudioLDM):", prompt);
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
+            "https://api-inference.huggingface.co/models/cvssp/audioldm-m-full",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
@@ -30,10 +29,8 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            let errData;
-            try { errData = JSON.parse(errText); } catch(e) { errData = { error: errText }; }
-            console.error("HF Muzik Hatasi:", response.status, errData);
-            return res.status(response.status).json(errData);
+            console.error("HF Hatasi:", response.status, errText);
+            return res.status(response.status).json({ error: `Hugging Face Hatası: ${response.status}. Model su an mesgul olabilir.` });
         }
 
         const audioBuffer = await response.arrayBuffer();
@@ -41,7 +38,6 @@ export default async function handler(req, res) {
         return res.send(Buffer.from(audioBuffer));
 
     } catch (error) {
-        console.error("Muzik Catch:", error.message);
-        return res.status(500).json({ error: `Sunucu Hatası: ${error.message}` });
+        return res.status(500).json({ error: error.message });
     }
 }
