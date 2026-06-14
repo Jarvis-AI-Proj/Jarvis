@@ -16,8 +16,9 @@ export default async function handler(req, res) {
 
     try {
         console.log("Müzik oluşturuluyor:", prompt);
+        // Yeni Router Linki Kullanılıyor
         const response = await fetch(
-            "https://api-inference.huggingface.co/models/facebook/musicgen-small",
+            "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,

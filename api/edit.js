@@ -33,8 +33,9 @@ export default async function handler(req, res) {
     try {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         
+        // Yeni Router Linki Kullanılıyor
         const response = await fetchWithRetry(
-            "https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix",
+            "https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
