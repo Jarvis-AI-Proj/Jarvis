@@ -16,14 +16,10 @@ export default async function handler(req, res) {
     try {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         
-        // DOĞRU PAYLOAD FORMATI: { "inputs": image, "parameters": { "prompt": prompt } }
         const response = await fetch(
             "https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix",
             {
-                headers: { 
-                    "Authorization": `Bearer ${token.trim()}`,
-                    "Content-Type": "application/json"
-                },
+                headers: { "Authorization": `Bearer ${token.trim()}`, "Content-Type": "application/json" },
                 method: "POST",
                 body: JSON.stringify({
                     inputs: base64Data,
@@ -34,7 +30,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF Hatası (${response.status}): ${errText}` });
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const resultBuffer = await response.arrayBuffer();

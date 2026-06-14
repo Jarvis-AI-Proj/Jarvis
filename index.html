@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: #0d1117; color: #c9d1d9; font-family: -apple-system, system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { padding: 15px 20px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid #30363d; position: relative; background: #161b22; z-index: 10; }
+        header h1 { font-size: 18px; color: #58a6ff; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+        .header-btns { position: absolute; right: 20px; display: flex; gap: 8px; align-items: center; }
+        .h-btn { background: transparent; border: 1px solid #30363d; color: #8b949e; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        .h-btn:hover { background: #30363d; color: #f0f6fc; }
+        .load-btn { border-color: #238636; color: #3fb950; }
+        #chat-box { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background-color: #0d1117; scroll-behavior: smooth; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 14px; font-size: 14.5px; line-height: 1.6; word-wrap: break-word; }
+        .user { align-self: flex-end; background-color: #1f6feb; color: white; border-bottom-right-radius: 2px; }
+        .jarvis { align-self: flex-start; background-color: #21262d; border: 1px solid #30363d; border-bottom-left-radius: 2px; padding-right: 40px; position: relative; }
+        .jarvis strong { color: #58a6ff; font-weight: 700; }
+        .code-container { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; margin: 12px 0; overflow: hidden; width: 100%; }
+        .code-header { background: #161b22; padding: 8px 12px; font-size: 11px; color: #8b949e; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; }
+        pre { padding: 15px; overflow-x: auto; font-family: 'Consolas', monospace; margin: 0; }
+        pre code { background: transparent; padding: 0; color: #79c0ff; font-size: 13px; white-space: pre; }
+        .input-area { padding: 10px 20px 20px; background: #161b22; border-top: 1px solid #30363d; }
+        .input-box { display: flex; background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 6px 12px; align-items: center; gap: 10px; max-width: 900px; margin: 0 auto; }
+        .upload-label, .img-btn { cursor: pointer; color: #8b949e; display: flex; align-items: center; transition: 0.2s; background: none; border: none; padding: 0; }
+        .upload-label:hover, .img-btn:hover { color: #58a6ff; }
+        #file-input { display: none; }
+        #user-input { flex-grow: 1; border: none; background: transparent; padding: 10px; outline: none; color: #ecf2f8; font-size: 15px; }
+        .send-btn { background: #238636; border: none; padding: 8px 18px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .disclaimer { text-align: center; font-size: 11px; color: #8b949e; margin-top: 10px; }
+        #loading-bar { height: 2px; background: #58a6ff; width: 0%; transition: width 0.3s; position: absolute; bottom: 0; left: 0; display: none; z-index: 100; }
+        #file-info { display: none; padding: 5px 12px; font-size: 11px; color: #58a6ff; text-align: center; }
+        .image-result, .audio-result { margin-top: 10px; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; padding: 12px; background: #1c2128; }
+        .image-result img { width: 100%; display: block; border-radius: 6px; margin-top: 8px; }
+        .audio-result audio { width: 100%; margin-top: 10px; }
+        .tts-btn { background:none; border:none; cursor:pointer; position:absolute; top:8px; right:10px; z-index:10; padding:5px; opacity:0.6; transition:0.2s; color:#58a6ff; }
+        .tts-btn:hover { opacity:1; }
+    </style>
+</head>
+<body>
+<header><h1>JARVIS</h1><div class="header-btns"><button class="h-btn load-btn" onclick="loadChat()">Yükle</button><button class="h-btn" onclick="clearChat()">Sıfırla</button></div><div id="loading-bar"></div></header>
+<div id="chat-box"></div>
+<div class="input-area">
+    <div id="file-info"></div>
+    <div class="input-box">
+        <label for="file-input" class="upload-label" title="Dosya Yükle"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.66 1.34 3 3 3s3-1.34 3-3V5c0-2.21-1.79-4-4-4S8 2.79 8 5v12.5c0 3.31 2.69 6 6 6s6-2.69 6-6V6h-1.5z"/></svg></label>
+        <input type="file" id="file-input" onchange="showFile(this)">
+        <button class="img-btn" onclick="triggerImageGen()" title="Resim Oluştur"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></button>
+        <div style="position: relative;">
+            <button id="mode-btn" class="img-btn" onclick="toggleModeOverlay()"><svg id="pen-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg><svg id="close-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="display:none;"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            <div id="mode-overlay" style="display:none; position: absolute; bottom: 40px; left: 0; background: #161b22; border: 1px solid #30363d; border-radius: 8px; width: 300px; padding: 10px; z-index: 100;">
+                <div style="padding: 10px; cursor: pointer; border-bottom: 1px solid #30363d;" onclick="selectMode('drawing')"><strong>Çizim modu</strong><br><small style="color:#8b949e;">Jarvis bu modda sadece çizim yapar. Bu modda normal metin konuşması gibi yazarsanız, rastgele bir resim üretir.</small></div>
+                <div style="padding: 10px; cursor: pointer; border-bottom: 1px solid #30363d;" onclick="selectMode('editing')"><strong>Düzenleme modu</strong><br><small style="color:#8b949e;">Jarvis bu modda sadece fotoğraf düzenler. Bu modda normal metin konuşması gibi yazarsanız, fotoğrafınızı kendisine göre düzenler.</small></div>
+                <div style="padding: 10px; cursor: pointer;" onclick="selectMode('music')"><strong>Müzik modu</strong><br><small style="color:#8b949e;">Jarvis bu modda sadece müzik besteler. Bu modda normal metin konuşması gibi yazarsanız, rastgele bir melodi üretir.</small></div>
+            </div>
+        </div>
+        <input type="text" id="user-input" placeholder="Aklınızda ne var?" autocomplete="off">
+        <button class="send-btn" onclick="handleSend()">Gönder</button>
+    </div>
+</div>
+<script>
+    const chatBox = document.getElementById('chat-box'), userInput = document.getElementById('user-input'), loadingBar = document.getElementById('loading-bar'), fileInfo = document.getElementById('file-info');
+    const API_URL = "/api/chat", 
+          IMG_API_URL = "/api/generate", 
+          EDIT_API_URL = "/api/edit", 
+          MUSIC_API_URL = "https://jarvis-m.vercel.app/api/music", 
+          TTS_API_URL = "/api/tts";
+    let history = [], activeFile = null, activeMode = null;
+
+    function escapeHTML(str) { return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
+    function showFile(input) { if (input.files && input.files[0]) { activeFile = input.files[0]; fileInfo.style.display = "block"; fileInfo.textContent = `Dosya: ${activeFile.name}`; } }
+    function parseMarkdown(t) { if (t.includes('IMAGE-RESULT') || t.includes('AUDIO-RESULT')) return t; let h = t.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, l, c) => `<div class="code-container"><div class="code-header"><span>${(l || 'CODE').toUpperCase()}</span></div><pre><code>${escapeHTML(c.trim())}</code></pre></div>`); return h.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>'); }
+    function cleanResponse(t) { return t.replace(/[^a-zA-ZçÇğĞıİöÖşŞüÜ0-9\s.,!?:;'"\-]/g, '').replace(/[_]/g, '').trim(); }
+
+    function speak(text) {
+        if (!window.speechSynthesis) return; window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text); const v = window.speechSynthesis.getVoices();
+        const tr = v.find(s => s.lang.includes('tr')); if (tr) u.voice = tr; u.lang = 'tr-TR'; window.speechSynthesis.speak(u);
+    }
+
+    function addMessage(role, text, save = true) {
+        const div = document.createElement('div'); div.className = `msg ${role}`;
+        if (role === 'jarvis') {
+            if (text.includes('IMAGE-RESULT') || text.includes('AUDIO-RESULT')) { div.innerHTML = text; } 
+            else {
+                const cleaned = cleanResponse(text); div.innerHTML = parseMarkdown(cleaned);
+                const btn = document.createElement('button'); btn.className = 'tts-btn';
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="#58a6ff"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+                btn.onclick = () => speak(cleaned); div.appendChild(btn);
+            }
+        } else { div.textContent = text; }
+        chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
+        if (save) saveToLocal();
+    }
+
+    function saveToLocal() { localStorage.setItem('jarvis_history', JSON.stringify(history)); localStorage.setItem('jarvis_html', chatBox.innerHTML); }
+    function loadChat() { const h = localStorage.getItem('jarvis_html'), hi = localStorage.getItem('jarvis_history'); if (h && hi) { chatBox.innerHTML = h; history = JSON.parse(hi); chatBox.scrollTop = chatBox.scrollHeight; } }
+    function clearChat() { if(confirm("Silinsin mi?")) { localStorage.clear(); chatBox.innerHTML = ''; history = []; addMessage('jarvis', 'Merhaba. Ben Jarvis. Nasıl yardımcı olabilirim?', false); } }
+
+    async function translatePrompt(prompt, system) {
+        const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "system", content: system }, { role: "user", content: prompt }], model: "llama-3.3" }) });
+        const data = await res.json(); return data.choices[0].message.content.trim();
+    }
+
+    async function generateImage(prompt) {
+        if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
+        try {
+            const english = await translatePrompt(prompt, "Translate music description to detailed English image prompt. Only return English.");
+            loadingBar.style.width = '50%';
+            const response = await fetch(IMG_API_URL, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ inputs: english }) });
+            if (!response.ok) throw new Error("API Hatası");
+            const blob = await response.blob(); const url = URL.createObjectURL(blob);
+            const html = `<div class="image-result" CLASS="IMAGE-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>Görsel: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="jarvis.jpg" style="color:#3fb950;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #238636;padding:4px 8px;border-radius:4px;">İNDİR</a></div><img src="${url}" onload="this.parentElement.scrollIntoView();"></div>`;
+            addMessage('jarvis', html);
+        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); }
+        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
+    }
+
+    async function generateMusic(prompt) {
+        if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
+        try {
+            const english = await translatePrompt(prompt, "Translate music description to professional English music prompt. Only return English.");
+            loadingBar.style.width = '50%';
+            const response = await fetch(MUSIC_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: english }) });
+            if (!response.ok) throw new Error("Müzik üretilemedi.");
+            const blob = await response.blob(); const url = URL.createObjectURL(blob);
+            const html = `<div class="audio-result" CLASS="AUDIO-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>AudioCraft: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="jarvis-music.wav" style="color:#58a6ff;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">İNDİR</a></div><audio controls src="${url}"></audio></div>`;
+            addMessage('jarvis', html);
+        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); }
+        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
+    }
+
+    function compressImage(file) {
+        return new Promise(r => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const c = document.createElement('canvas'); let w = img.width, h = img.height; if(w > 768) { h = Math.round((h * 768) / w); w = 768; } c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); r(c.toDataURL('image/jpeg', 0.7)); }; }; });
+    }
+
+    async function generateEdit(prompt, file) {
+        if (!prompt || !file) return; loadingBar.style.display = 'block'; loadingBar.style.width = '10%';
+        try {
+            const english = await translatePrompt(prompt, "Translate edit instruction to technical English Pix2Pix prompt. Only return English.");
+            loadingBar.style.width = '30%';
+            const compressed = await compressImage(file);
+            loadingBar.style.width = '50%';
+            const response = await fetch(EDIT_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: compressed, prompt: english }) });
+            if (!response.ok) throw new Error("Düzenleme Hatası");
+            const blob = await response.blob(); const url = URL.createObjectURL(blob);
+            const html = `<div class="image-result" CLASS="IMAGE-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>Düzenlendi: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="edit.jpg" style="color:#3fb950;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #238636;padding:4px 8px;border-radius:4px;">İNDİR</a></div><img src="${url}" onload="this.parentElement.scrollIntoView();"></div>`;
+            addMessage('jarvis', html);
+        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); }
+        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
+    }
+
+    async function handleSend() {
+        const val = userInput.value.trim(); if (!val && !activeFile) return;
+        if (activeMode && ["merhaba", "selam", "naber"].some(k => val.toLowerCase().includes(k))) { addMessage('user', val); userInput.value = ''; addMessage('jarvis', 'Moddan çıkmak için (X) basın.'); return; }
+        if (activeMode === 'music') { addMessage('user', val); userInput.value = ''; generateMusic(val); return; }
+        if (activeMode === 'editing') { if (!activeFile) { addMessage('jarvis', 'Önce fotoğraf yükleyin.'); return; } addMessage('user', val); userInput.value = ''; generateEdit(val, activeFile); return; }
+        if (activeMode === 'drawing' || val.toLowerCase().includes("çiz")) { addMessage('user', val); userInput.value = ''; generateImage(val.replace(/çiz/gi, '').trim() || val); return; }
+        addMessage('user', val); userInput.value = ''; history.push({ role: "user", content: val });
+        try {
+            loadingBar.style.display = 'block'; loadingBar.style.width = '50%';
+            const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: history, model: "llama-3.3" }) });
+            const data = await res.json(); addMessage('jarvis', data.choices[0].message.content); history.push({ role: "assistant", content: data.choices[0].message.content });
+        } catch (e) { addMessage('jarvis', "Bağlantı koptu."); }
+        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
+    }
+    function toggleModeOverlay() { if (activeMode) { activeMode = null; document.getElementById('pen-icon').style.display='block'; document.getElementById('close-icon').style.display='none'; userInput.placeholder="Aklınızda ne var?"; document.getElementById('mode-overlay').style.display='none'; } else { const o = document.getElementById('mode-overlay'); o.style.display = (o.style.display === 'none') ? 'block' : 'none'; } }
+    function selectMode(m) { activeMode = m; document.getElementById('pen-icon').style.display='none'; document.getElementById('close-icon').style.display='block'; const n = {drawing: 'Çizim', editing: 'Düzenleme', music: 'Müzik'}; userInput.placeholder = `${n[m]} modu aktif...`; document.getElementById('mode-overlay').style.display='none'; }
+    userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSend(); });
+    window.onload = () => { addMessage('jarvis', 'Merhaba. Ben Jarvis. Nasıl yardımcı olabilirim?', false); if (window.speechSynthesis) window.speechSynthesis.getVoices(); };
+</script>
+</body>
+</html>
