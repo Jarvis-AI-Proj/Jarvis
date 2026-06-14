@@ -14,19 +14,17 @@ export default async function handler(req, res) {
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
     if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
-    // Yeniden deneme mekanizması (Hızı artırır ve hataları önler)
-    const fetchWithRetry = async (url, options, retries = 2) => {
+    const fetchWithRetry = async (url, options, retries = 3) => {
         try {
             const resp = await fetch(url, options);
             if (resp.status === 503 && retries > 0) {
-                console.log("Müzik modeli yükleniyor, tekrar deneniyor...");
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 return fetchWithRetry(url, options, retries - 1);
             }
             return resp;
         } catch (err) {
             if (retries <= 0) throw err;
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             return fetchWithRetry(url, options, retries - 1);
         }
     };
@@ -35,18 +33,14 @@ export default async function handler(req, res) {
         const response = await fetchWithRetry(
             "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
-                headers: { 
-                    "Authorization": `Bearer ${token.trim()}`,
-                    "Content-Type": "application/json"
-                },
+                headers: { "Authorization": `Bearer ${token.trim()}`, "Content-Type": "application/json" },
                 method: "POST",
                 body: JSON.stringify({ inputs: prompt }),
             }
         );
 
         if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`HF Hatası: ${response.status}`);
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
@@ -54,7 +48,6 @@ export default async function handler(req, res) {
         return res.send(Buffer.from(audioBuffer));
 
     } catch (error) {
-        console.error("Müzik Hatası:", error.message);
         return res.status(500).json({ error: error.message });
     }
 }
