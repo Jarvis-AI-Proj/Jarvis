@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix",
+            "https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
@@ -26,15 +26,16 @@ export default async function handler(req, res) {
                 },
                 method: "POST",
                 body: JSON.stringify({
-                    inputs: prompt.trim(),
-                    image: base64Data
+                    inputs: prompt,
+                    image: base64Data,
+                    parameters: { strength: 0.7 } // Orijinal resme sadık kalma oranı
                 }),
             }
         );
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF 400 Hatası (Edit): ${errText}` });
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const resultBuffer = await response.arrayBuffer();

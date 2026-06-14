@@ -12,25 +12,24 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
-    if (!prompt || prompt.trim() === "") return res.status(400).json({ error: 'Müzik açıklaması boş olamaz!' });
 
     try {
-        console.log("Müzik üretiliyor (AudioLDM):", prompt);
+        console.log("Müzik üretiliyor (Suno Bark):", prompt);
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/cvssp/audioldm-m-full",
+            "https://router.huggingface.co/hf-inference/models/suno/bark-small",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
                     "Content-Type": "application/json"
                 },
                 method: "POST",
-                body: JSON.stringify({ inputs: prompt.trim() }), // En sade format
+                body: JSON.stringify({ inputs: prompt }),
             }
         );
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF 400 Hatası: ${errText}` });
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
