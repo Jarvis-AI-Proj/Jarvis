@@ -14,10 +14,25 @@ export default async function handler(req, res) {
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
     if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
+    // Yeniden deneme mekanizması (Hızı artırır ve hataları önler)
+    const fetchWithRetry = async (url, options, retries = 2) => {
+        try {
+            const resp = await fetch(url, options);
+            if (resp.status === 503 && retries > 0) {
+                console.log("Müzik modeli yükleniyor, tekrar deneniyor...");
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                return fetchWithRetry(url, options, retries - 1);
+            }
+            return resp;
+        } catch (err) {
+            if (retries <= 0) throw err;
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+    };
+
     try {
-        console.log("Müzik oluşturuluyor:", prompt);
-        // Yeni Router Linki Kullanılıyor
-        const response = await fetch(
+        const response = await fetchWithRetry(
             "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
                 headers: { 
@@ -31,7 +46,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(`HF Hatası: ${response.status} - ${errText}`);
+            throw new Error(`HF Hatası: ${response.status}`);
         }
 
         const audioBuffer = await response.arrayBuffer();
