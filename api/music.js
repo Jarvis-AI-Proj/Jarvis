@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     try {
         console.log("Ses/Muzik uretiliyor (AudioLDM):", prompt);
         const response = await fetch(
-            "https://api-inference.huggingface.co/models/cvssp/audioldm-m-full",
+            "https://router.huggingface.co/hf-inference/models/cvssp/audioldm-m-full",
             {
                 headers: { 
                     "Authorization": `Bearer ${token.trim()}`,
@@ -29,8 +29,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error("HF Hatasi:", response.status, errText);
-            return res.status(response.status).json({ error: `Hugging Face Hatası: ${response.status}. Model su an mesgul olabilir.` });
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
