@@ -62,11 +62,8 @@
 </div>
 <script>
     const chatBox = document.getElementById('chat-box'), userInput = document.getElementById('user-input'), loadingBar = document.getElementById('loading-bar'), fileInfo = document.getElementById('file-info');
-    const API_URL = "/api/chat", 
-          IMG_API_URL = "/api/generate", 
-          EDIT_API_URL = "/api/edit", 
-          MUSIC_API_URL = "https://jarvis-m.vercel.app/api/music", 
-          TTS_API_URL = "/api/tts";
+    // TÜM URL'LER ARTIK ANA PROJEDE (RELATIVE)
+    const API_URL = "/api/chat", IMG_API_URL = "/api/generate", EDIT_API_URL = "/api/edit", MUSIC_API_URL = "/api/music", TTS_API_URL = "/api/tts";
     let history = [], activeFile = null, activeMode = null;
 
     function escapeHTML(str) { return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
@@ -107,7 +104,7 @@
     async function generateImage(prompt) {
         if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
         try {
-            const english = await translatePrompt(prompt, "Translate music description to detailed English image prompt. Only return English.");
+            const english = await translatePrompt(prompt, "Translate to detailed English image prompt. Only return English.");
             loadingBar.style.width = '50%';
             const response = await fetch(IMG_API_URL, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ inputs: english }) });
             if (!response.ok) throw new Error("API Hatası");
@@ -121,15 +118,26 @@
     async function generateMusic(prompt) {
         if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
         try {
-            const english = await translatePrompt(prompt, "Translate music description to professional English music prompt. Only return English.");
-            loadingBar.style.width = '50%';
+            const english = await translatePrompt(prompt, "Translate to professional English music prompt. Only return English.");
+            loadingBar.style.width = '40%';
             const response = await fetch(MUSIC_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: english }) });
-            if (!response.ok) throw new Error("Müzik üretilemedi.");
-            const blob = await response.blob(); const url = URL.createObjectURL(blob);
-            const html = `<div class="audio-result" CLASS="AUDIO-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>AudioCraft: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="jarvis-music.wav" style="color:#58a6ff;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">İNDİR</a></div><audio controls src="${url}"></audio></div>`;
-            addMessage('jarvis', html);
-        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); }
-        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
+            let data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Müzik başlatılamadı.");
+
+            const pollId = data.id;
+            const checkStatus = async () => {
+                const res = await fetch(`${MUSIC_API_URL}?id=${pollId}`);
+                const result = await res.json();
+                if (result.status === "succeeded") {
+                    const url = result.output;
+                    const html = `<div class="audio-result" CLASS="AUDIO-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>AudioCraft: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="jarvis-music.wav" style="color:#58a6ff;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">İNDİR</a></div><audio controls src="${url}"></audio></div>`;
+                    addMessage('jarvis', html);
+                    loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400);
+                } else if (result.status === "failed") { throw new Error("Üretim başarısız."); }
+                else { setTimeout(checkStatus, 3000); }
+            };
+            checkStatus();
+        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); loadingBar.style.display = 'none'; }
     }
 
     function compressImage(file) {
@@ -139,12 +147,10 @@
     async function generateEdit(prompt, file) {
         if (!prompt || !file) return; loadingBar.style.display = 'block'; loadingBar.style.width = '10%';
         try {
-            const english = await translatePrompt(prompt, "Translate edit instruction to technical English Pix2Pix prompt. Only return English.");
-            loadingBar.style.width = '30%';
+            const english = await translatePrompt(prompt, "Translate to technical English Pix2Pix prompt. Only return English.");
             const compressed = await compressImage(file);
-            loadingBar.style.width = '50%';
             const response = await fetch(EDIT_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: compressed, prompt: english }) });
-            if (!response.ok) throw new Error("Düzenleme Hatası");
+            if (!response.ok) { const err = await response.json(); throw new Error(err.error || "Hata."); }
             const blob = await response.blob(); const url = URL.createObjectURL(blob);
             const html = `<div class="image-result" CLASS="IMAGE-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>Düzenlendi: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="edit.jpg" style="color:#3fb950;text-decoration:none;font-size:12px;font-weight:bold;border:1px solid #238636;padding:4px 8px;border-radius:4px;">İNDİR</a></div><img src="${url}" onload="this.parentElement.scrollIntoView();"></div>`;
             addMessage('jarvis', html);
