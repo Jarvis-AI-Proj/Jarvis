@@ -7,9 +7,8 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    const apiKey = process.env.HF_TOKEN; // Replicate Token (Vercel'e ekle)
+    const apiKey = process.env.HF_TOKEN; // Replicate anahtarını Vercel'de buraya yaz
 
-    // --- DURUM KONTROLÜ (GET) ---
     if (req.method === 'GET') {
         const { id } = req.query;
         if (!id) return res.status(400).json({ error: 'ID gerekli' });
@@ -22,13 +21,11 @@ export default async function handler(req, res) {
         } catch (e) { return res.status(500).json({ error: e.message }); }
     }
 
-    // --- BAŞLATMA (POST) ---
     if (req.method === 'POST') {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: 'Prompt gerekli' });
 
         try {
-            // Replicate - Meta AudioCraft (MusicGen)
             const response = await fetch("https://api.replicate.com/v1/predictions", {
                 method: "POST",
                 headers: {
