@@ -252,13 +252,12 @@
 <script>
     const chatBox = document.getElementById('chat-box'), userInput = document.getElementById('user-input'), loadingBar = document.getElementById('loading-bar'), fileInfo = document.getElementById('file-info');
     
-    // THE CRITICAL OMEGA LINK - PRESERVED AND LOCKED
-    const BASE_URL = "https://jarvis-kappa-silk.vercel.app";
+    // API CONFIGURATION - OMEGA PRESERVED
     const API_URL = "https://jarvis-omega-eosin.vercel.app/api/chat";
-    const IMG_API_URL = `${BASE_URL}/api/generate`;
-    const EDIT_API_URL = `${BASE_URL}/api/edit`;
-    const MUSIC_API_URL = `${BASE_URL}/api/music`;
-    const TTS_API_URL = `${BASE_URL}/api/tts`;
+    const IMG_API_URL = "/api/generate";
+    const EDIT_API_URL = "/api/edit";
+    const MUSIC_API_URL = "/api/music";
+    const TTS_API_URL = "/api/tts";
 
     let history = [], activeFile = null, activeMode = null;
 
@@ -300,9 +299,7 @@
     async function pollReplicate(pollUrl, prompt, type) {
         const check = async () => {
             try {
-                // Ensure absolute URL for polling
-                const finalUrl = pollUrl.startsWith('/') ? `${BASE_URL}${pollUrl}` : pollUrl;
-                const res = await fetch(finalUrl);
+                const res = await fetch(pollUrl);
                 const result = await res.json();
                 if (result.status === "succeeded") {
                     const url = result.output;
@@ -319,12 +316,12 @@
     async function generateImage(prompt) {
         if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
         try {
-            const english = await translatePrompt(prompt, "Sen bir prompt mühendisisin. İsteği inanılmaz detaylı bir İngilizce resim promptuna çevir. Sadece metni dön.");
+            const english = await translatePrompt(prompt, "Translate to detailed English image prompt. Only return text.");
             loadingBar.style.width = '40%';
             const response = await fetch(IMG_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ inputs: english }) });
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Sunucu hatası.");
-            pollReplicate(`/api/generate?id=${data.id}`, prompt, 'image');
+            if (!response.ok) throw new Error(data.error || "Hata");
+            pollReplicate(`${IMG_API_URL}?id=${data.id}`, prompt, 'image');
         } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); loadingBar.style.display = 'none'; }
     }
 
@@ -332,12 +329,14 @@
         if (!prompt) return; loadingBar.style.display = 'block'; loadingBar.style.width = '20%';
         try {
             const english = await translatePrompt(prompt, "Translate music description to professional English music prompt. Only return English.");
-            loadingBar.style.width = '40%';
+            loadingBar.style.width = '50%';
             const response = await fetch(MUSIC_API_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: english }) });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Müzik sunucusuna ulaşılamadı.");
-            pollReplicate(`${MUSIC_API_URL}?id=${data.id}`, prompt, 'music');
-        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); loadingBar.style.display = 'none'; }
+            if (!response.ok) throw new Error("Müzik üretilemedi.");
+            const blob = await response.blob(); const url = URL.createObjectURL(blob);
+            const html = `<div class="audio-result" CLASS="AUDIO-RESULT"><div style="display:flex;justify-content:space-between;align-items:center;"><span>AudioCraft: <strong>${escapeHTML(prompt)}</strong></span><a href="${url}" download="music.wav" style="color:var(--accent-blue);text-decoration:none;font-size:12px;font-weight:bold;border:1px solid var(--border);padding:4px 8px;border-radius:4px;">İNDİR</a></div><audio controls src="${url}"></audio></div>`;
+            addMessage('jarvis', html);
+        } catch (e) { addMessage('jarvis', `❌ Hata: ${e.message}`); }
+        finally { loadingBar.style.width = '100%'; setTimeout(() => { loadingBar.style.display = 'none'; }, 400); }
     }
 
     function compressImage(file) {
