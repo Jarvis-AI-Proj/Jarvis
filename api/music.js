@@ -1,37 +1,43 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-    // TAM ÖZGÜRLÜK (CORS)
+    // CORS: Tamamen serbest bırak
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.setHeader('Access-Control-Max-Age', '86400');
-
+    
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const { prompt } = req.body;
-    const apiKey = process.env.HF_TOKEN;
+    const token = process.env.HF_TOKEN;
 
-    if (!apiKey) return res.status(500).json({ error: 'API Anahtarı eksik!' });
-    if (!prompt) return res.status(400).json({ error: 'Prompt gerekli' });
+    if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
+    if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
     try {
-        const response = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Token ${apiKey.trim()}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                version: "b05b1d43c2c19e5E7c7a5270275a5078a63212871f37e556e4c73950269389f4",
-                input: { prompt: prompt.trim(), duration: 8 }
-            })
-        });
-        
-        const data = await response.json();
-        return res.status(200).json(data);
-    } catch (e) {
-        return res.status(500).json({ error: e.message });
+        const response = await fetch(
+            "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
+            {
+                headers: { 
+                    "Authorization": `Bearer ${token.trim()}`,
+                    "Content-Type": "application/json"
+                },
+                method: "POST",
+                body: JSON.stringify({ inputs: prompt.trim() }),
+            }
+        );
+
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status} - ${errText}` });
+        }
+
+        const audioBuffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', 'audio/wav');
+        return res.send(Buffer.from(audioBuffer));
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
     }
 }
