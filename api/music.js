@@ -12,19 +12,13 @@ export default async function handler(req, res) {
     const token = process.env.HF_TOKEN;
 
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
-    if (!prompt) return res.status(400).json({ error: 'Müzik açıklaması gerekli!' });
 
     try {
-        console.log("AudioLDM uretiliyor:", prompt);
-        
-        // DESTEKLENEN MODEL: cvssp/audioldm-m-full
+        // MUSICBRAINZ (MUSICGEN) - HF ROUTER
         const response = await fetch(
-            "https://router.huggingface.co/hf-inference/models/cvssp/audioldm-m-full",
+            "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
-                headers: { 
-                    "Authorization": `Bearer ${token.trim()}`,
-                    "Content-Type": "application/json"
-                },
+                headers: { "Authorization": `Bearer ${token.trim()}`, "Content-Type": "application/json" },
                 method: "POST",
                 body: JSON.stringify({ inputs: prompt.trim() }),
             }
@@ -32,7 +26,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF Hatası: ${response.status} - ${errText}` });
+            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
