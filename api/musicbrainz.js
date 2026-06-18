@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     if (!token) return res.status(500).json({ error: 'HF_TOKEN eksik!' });
 
     try {
-        // MUSICBRAINZ (MUSICGEN) - HF ROUTER
+        // MUSICBRAINZ INTERNAL (MUSICGEN MODEL)
         const response = await fetch(
             "https://router.huggingface.co/hf-inference/models/facebook/musicgen-small",
             {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errText = await response.text();
-            return res.status(response.status).json({ error: `HF Hatası: ${response.status}` });
+            return res.status(response.status).json({ error: `Hata: ${response.status}` });
         }
 
         const audioBuffer = await response.arrayBuffer();
